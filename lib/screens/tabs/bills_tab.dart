@@ -5,7 +5,7 @@ import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-/// Improved BillsTab with proper data display and bill view functionality
+/// Improved BillsTab with frontend filtering
 class BillsTab extends StatefulWidget {
   const BillsTab({super.key});
 
@@ -24,7 +24,9 @@ class _BillsTabState extends State<BillsTab> with SingleTickerProviderStateMixin
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
-      setState(() => _selectedFilter = BillStatusFilter.values[_tabController.index]);
+      if (_tabController.indexIsChanging) {
+        setState(() => _selectedFilter = BillStatusFilter.values[_tabController.index]);
+      }
     });
   }
 
@@ -34,24 +36,34 @@ class _BillsTabState extends State<BillsTab> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
+  // Fetch ALL bills once - no complex queries!
   Stream<QuerySnapshot> _buildBillsStream(String distributorId) {
-    Query query = FirebaseFirestore.instance
+    return FirebaseFirestore.instance
         .collection('bills')
-        .where('distributorId', isEqualTo: distributorId);
+        .where('distributorId', isEqualTo: distributorId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 
+  // Filter bills in frontend based on selected tab
+  List<DocumentSnapshot> _filterBills(List<DocumentSnapshot> allBills) {
     switch (_selectedFilter) {
       case BillStatusFilter.paid:
-        query = query.where('status', isEqualTo: 'paid');
-        break;
+        return allBills.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['status'] == 'paid';
+        }).toList();
+      
       case BillStatusFilter.unpaid:
-        query = query.where('status', isEqualTo: 'unpaid');
-        break;
+        return allBills.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['status'] == 'unpaid';
+        }).toList();
+      
       case BillStatusFilter.all:
       default:
-        break;
+        return allBills;
     }
-
-    return query.orderBy('createdAt', descending: true).snapshots();
   }
 
   @override
@@ -97,7 +109,39 @@ class _BillsTabState extends State<BillsTab> with SingleTickerProviderStateMixin
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Unable to load bills',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please check your internet connection',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {}); 
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return _EmptyState(
@@ -106,15 +150,24 @@ class _BillsTabState extends State<BillsTab> with SingleTickerProviderStateMixin
             );
           }
 
-          final bills = snapshot.data!.docs;
+          // Get ALL bills
+          final allBills = snapshot.data!.docs;
+          
+          // Filter based on selected tab
+          final filteredBills = _filterBills(allBills);
 
+          if (filteredBills.isEmpty) {
+            return _EmptyState(
+              message: 'No ${_selectedFilter.name} bills',
+              subtitle: 'Try switching to another tab',
+            );
+          }
 
           return ListView.separated(
             padding: const EdgeInsets.all(12),
-            itemCount: bills.length,
+            itemCount: filteredBills.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) => BillCardV2(billDoc: bills[index]),
-            
+            itemBuilder: (context, index) => BillCardV2(billDoc: filteredBills[index]),
           );
         },
       ),

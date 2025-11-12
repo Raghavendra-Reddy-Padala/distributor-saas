@@ -7,6 +7,7 @@ import 'package:priyanakaenterprises/screens/details/card_detials_page.dart';
 
 import 'package:priyanakaenterprises/screens/add_bill_screen.dart';
 import 'package:priyanakaenterprises/screens/forms/add_client_screen.dart';
+import 'package:priyanakaenterprises/screens/tabs/bills_tab.dart';
 import 'package:priyanakaenterprises/widgets/card_selection.dart';
 
 class ClientDetailsScreen extends StatelessWidget {
@@ -109,9 +110,8 @@ onPressed: () {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SelectCardScreen(
-          clientId: clientId,
-          clientName: clientName,
+        builder: (_) => CreditCardsPage(
+          
           clientData: data,
         ),
       ),
@@ -550,46 +550,290 @@ class BankAccountsSection extends StatelessWidget {
     );
   }
 }
-
 class BillsHistorySection extends StatelessWidget {
   final String clientId;
   const BillsHistorySection({super.key, required this.clientId});
 
   @override
   Widget build(BuildContext context) {
-    final billsStream = FirebaseFirestore.instance.collection('bills').where('clientId', isEqualTo: clientId).orderBy('createdAt', descending: true).snapshots();
+    final billsStream = FirebaseFirestore.instance
+        .collection('bills')
+        .where('clientId', isEqualTo: clientId)
+        .snapshots();
 
     return SectionCard(
       title: 'Bills History',
       child: StreamBuilder<QuerySnapshot>(
         stream: billsStream,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text('Error loading bills.'));
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Text('No bills found for this client.');
-
-          final bills = snapshot.data!.docs;
-          return Column(children: bills.map((bill) {
-            final data = bill.data() as Map<String, dynamic>;
-            final amount = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(data['amount'] ?? 0);
-            final status = data['status'] ?? 'Unknown';
-            final dueDate = (data['dueDate'] as Timestamp?)?.toDate();
-            final formattedDate = dueDate != null ? DateFormat('dd MMM yyyy').format(dueDate) : 'No due date';
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                title: Text(amount),
-                subtitle: Text('Due: $formattedDate'),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: status == 'paid' ? Colors.green.withOpacity(0.12) : (status == 'unpaid' ? Colors.red.withOpacity(0.12) : Colors.orange.withOpacity(0.12)), borderRadius: BorderRadius.circular(8)),
-                  child: Text(status.toUpperCase(), style: TextStyle(color: status == 'paid' ? Colors.green : (status == 'unpaid' ? Colors.red : Colors.orange), fontWeight: FontWeight.bold)),
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading bills.'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey),
+                    SizedBox(height: 12),
+                    Text(
+                      'No bills found for this client.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
               ),
             );
-          }).toList());
+          }
+
+          final bills = snapshot.data!.docs;
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: bills.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final bill = bills[index];
+              final data = bill.data() as Map<String, dynamic>;
+              
+              final totalBillPayment = data['totalBillPayment'] ?? 0;
+              final totalWithdrawal = data['totalWithdrawal'] ?? 0;
+              final finalAmount = data['interestAmount'] ?? 0;
+              final status = data['status'] ?? 'Unknown';
+              final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+              final formattedDate = createdAt != null 
+                  ? DateFormat('dd MMM yyyy').format(createdAt) 
+                  : 'No date';
+              final selectedGateway = data['selectedGateway']?.toString().toUpperCase() ?? 'N/A';
+
+              return Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BillDetailPage(billDoc: bill),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Amount Section
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Final Amount',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    NumberFormat.currency(
+                                      locale: 'en_IN',
+                                      symbol: '₹',
+                                      decimalDigits: 2,
+                                    ).format(finalAmount),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Status Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: status == 'paid'
+                                    ? Colors.green.withOpacity(0.15)
+                                    : (status == 'unpaid'
+                                        ? Colors.red.withOpacity(0.15)
+                                        : Colors.orange.withOpacity(0.15)),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                  color: status == 'paid'
+                                      ? Colors.green.shade700
+                                      : (status == 'unpaid'
+                                          ? Colors.red.shade700
+                                          : Colors.orange.shade700),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        const Divider(height: 1),
+                        const SizedBox(height: 12),
+                        
+                        // Details Grid
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDetailItem(
+                                icon: Icons.credit_card,
+                                label: 'Bill Payment',
+                                value: '₹${NumberFormat('#,##,##0').format(totalBillPayment)}',
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey.shade300,
+                            ),
+                            Expanded(
+                              child: _buildDetailItem(
+                                icon: Icons.account_balance_wallet,
+                                label: 'Withdrawal',
+                                value: '₹${NumberFormat('#,##,##0').format(totalWithdrawal)}',
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Footer Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Date and Gateway
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 14,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    formattedDate,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      selectedGateway,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // View Details Button
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.remove_red_eye_outlined,
+                                  color: Colors.blue.shade700,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BillDetailPage(billDoc: bill),
+                                    ),
+                                  );
+                                },
+                                tooltip: 'View Details',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
         },
+      ),
+    );
+  }
+
+  Widget _buildDetailItem({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

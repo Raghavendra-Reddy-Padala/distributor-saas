@@ -10,8 +10,6 @@ import 'package:priyanakaenterprises/screens/profile_screen.dart';
 import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:priyanakaenterprises/widgets/stat_card.dart';
 
-// Single file refactor: Dashboard split into smaller widgets for readability & reuse.
-
 class DashboardTab extends StatelessWidget {
   const DashboardTab({super.key});
 
@@ -154,23 +152,24 @@ class StatArea extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('bills').where('distributorId', isEqualTo: distributorId).snapshots(),
       builder: (context, billSnapshot) {
-        double paidAmount = 0;
-        double pendingAmount = 0;
         double totalIncome = 0;
+        double pendingAmount = 0;
+        double paidAmount = 0;
 
         if (billSnapshot.hasData) {
           for (var doc in billSnapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+            final interestAmount = (data['interestAmount'] as num?)?.toDouble() ?? 0.0;
             final status = data['status'] as String?;
 
+            // Total income is sum of all interest amounts (paid bills)
             if (status == 'paid') {
-              paidAmount += amount;
-            } else if (status == 'unpaid' || status == 'partial') {
-              pendingAmount += amount;
+              totalIncome += interestAmount;
+              paidAmount += interestAmount;
+            } else if (status == 'pending' || status == 'unpaid' || status == 'partial') {
+              pendingAmount += interestAmount;
             }
           }
-          totalIncome = paidAmount;
         }
 
         final currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
@@ -192,30 +191,7 @@ class StatArea extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: spacing),
-            Row(
-              children: [
-                Expanded(
-                  child: StatCard(
-                    title: 'Pending Bills',
-                    value: currencyFormatter.format(pendingAmount),
-                    icon: Icons.pending_actions_rounded,
-                    color: const Color(0xFFF59E0B),
-                    constraints: constraints,
-                  ),
-                ),
-                SizedBox(width: spacing),
-                Expanded(
-                  child: StatCard(
-                    title: 'Paid Bills',
-                    value: currencyFormatter.format(paidAmount),
-                    icon: Icons.check_circle_outline_rounded,
-                    color: const Color(0xFF8B5CF6),
-                    constraints: constraints,
-                  ),
-                ),
-              ],
-            ),
+          
           ],
         );
       },
@@ -286,8 +262,6 @@ class QuickActionsArea extends StatelessWidget {
                   Expanded(child: ActionButton.share(link: clientFormLink)),
                   const SizedBox(width: 12),
                   Expanded(child: ActionButton.addClient()),
-                  const SizedBox(width: 12),
-                  Expanded(child: ActionButton.createBill()),
                 ],
               )
             : Column(
@@ -295,8 +269,6 @@ class QuickActionsArea extends StatelessWidget {
                   ActionButton.share(link: clientFormLink),
                   const SizedBox(height: 12),
                   ActionButton.addClient(),
-                  const SizedBox(height: 12),
-                  ActionButton.createBill(),
                 ],
               ),
       ],
@@ -330,30 +302,16 @@ class ActionButton extends StatelessWidget {
       icon: Icons.person_add_alt_1_rounded,
       label: 'Add Client',
       color: const Color(0xFF10B981),
-      onPressed: () {}, // replaced by onTap below so this won't be used directly
-    );
-  }
-
-  factory ActionButton.createBill() {
-    return ActionButton._(
-      icon: Icons.receipt_long_rounded,
-      label: 'Create Bill',
-      color: const Color(0xFF8B5CF6),
       onPressed: () {},
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // For addClient and createBill we need navigation - handle here based on label
     VoidCallback finalOnPressed = onPressed;
     if (label == 'Add Client') {
       finalOnPressed = () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const AddClientScreen()));
-      };
-    } else if (label == 'Create Bill') {
-      finalOnPressed = () {
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => const AddBillScreen()));
       };
     }
 
@@ -412,11 +370,12 @@ class RecentActivityArea extends StatelessWidget {
         const SizedBox(height: 20),
         RemindersDueTodayWidget(distributorId: distributorId),
         const SizedBox(height: 16),
+        GatewayStatsWidget(distributorId: distributorId),
+        const SizedBox(height: 16),
         if (isTablet)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: RecentClientsWidget(distributorId: distributorId)),
               const SizedBox(width: 16),
               Expanded(child: RecentBillsWidget(distributorId: distributorId)),
             ],
@@ -424,7 +383,6 @@ class RecentActivityArea extends StatelessWidget {
         else
           Column(
             children: [
-              RecentClientsWidget(distributorId: distributorId),
               const SizedBox(height: 16),
               RecentBillsWidget(distributorId: distributorId),
             ],
@@ -434,78 +392,180 @@ class RecentActivityArea extends StatelessWidget {
   }
 }
 
-class RecentClientsWidget extends StatelessWidget {
+// ------------------ Gateway Stats Widget ------------------
+class GatewayStatsWidget extends StatelessWidget {
   final String distributorId;
-  const RecentClientsWidget({super.key, required this.distributorId});
+  const GatewayStatsWidget({super.key, required this.distributorId});
 
   @override
   Widget build(BuildContext context) {
-    final stream = FirebaseFirestore.instance.collection('clients').where('distributorId', isEqualTo: distributorId).orderBy('submittedAt', descending: true).limit(5).snapshots();
+    final stream = FirebaseFirestore.instance
+        .collection('bills')
+        .where('distributorId', isEqualTo: distributorId)
+        .where('status', isEqualTo: 'paid')
+        .snapshots();
 
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return EmptyStateWidget(message: 'No recent clients', icon: Icons.people_outline_rounded);
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
         }
 
-        return _listContainer(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.people_rounded, color: Color(0xFF3B82F6), size: 24)),
-                  const SizedBox(width: 12),
-                  Text('Latest Clients', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ListView.separated(
-                itemCount: snapshot.data!.docs.length,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF2563EB)]), borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.person_rounded, color: Colors.white, size: 24),
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        // Count payments by gateway
+        Map<String, int> gatewayCounts = {
+          'plg': 0,
+          'slg': 0,
+          'pay': 0,
+          'nter': 0,
+        };
+
+        Map<String, String> gatewayNames = {
+          'plg': 'PLG',
+          'slg': 'SLG',
+          'pay': 'PAY',
+          'nter': 'NTER',
+        };
+
+        Map<String, Color> gatewayColors = {
+          'plg': const Color(0xFF3B82F6),
+          'slg': const Color(0xFF10B981),
+          'pay': const Color(0xFFF59E0B),
+          'nter': const Color(0xFF8B5CF6),
+        };
+
+        for (var doc in snapshot.data!.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final gateway = data['selectedGateway'] as String?;
+          if (gateway != null && gatewayCounts.containsKey(gateway)) {
+            gatewayCounts[gateway] = gatewayCounts[gateway]! + 1;
+          }
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: Color(0xFF6366F1),
+                        size: 40,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Gateway Payment Stats',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 2.5,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                  ),
+                  itemCount: gatewayCounts.length,
+                  itemBuilder: (context, index) {
+                    final gatewayKey = gatewayCounts.keys.elementAt(index);
+                    final count = gatewayCounts[gatewayKey]!;
+                    final name = gatewayNames[gatewayKey]!;
+                    final color = gatewayColors[gatewayKey]!;
+
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [color, color.withOpacity(0.8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
                             children: [
-                              Text(data['name'] ?? 'No Name', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                              const SizedBox(height: 2),
-                              Text(data['mobile'] ?? 'No Mobile', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                              Text(
+                                count.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'payment${count != 1 ? 's' : ''}',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
-    );
-  }
-
-  Widget _listContainer({required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
-      child: Padding(padding: const EdgeInsets.all(20.0), child: child),
     );
   }
 }
@@ -549,7 +609,7 @@ class RecentBillsWidget extends StatelessWidget {
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-                    final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+                    final amount = (data['interestAmount'] as num?)?.toDouble() ?? 0.0;
                     final currency = currencyFormatter.format(amount);
                     final status = data['status'] ?? 'No Status';
                     final isPaid = status == 'paid';

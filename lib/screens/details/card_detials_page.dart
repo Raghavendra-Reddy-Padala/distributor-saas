@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:priyanakaenterprises/screens/add_bill_screen.dart';
 
 class CreditCardsPage extends StatelessWidget {
   final Map<String, dynamic> clientData;
@@ -123,7 +124,12 @@ class CreditCardsPage extends StatelessWidget {
                       itemBuilder: (context, index) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: CreditCardItem(cardData: cards[index]),
+                          child: CreditCardItem(cardData: cards[index],
+                          clientData: clientData, // pass the whole client data map
+      clientId: clientData['id']?.toString() ?? clientData['clientId']?.toString() ?? '',
+      clientName: clientData['name']?.toString() ?? clientData['clientName']?.toString() ?? 'Client',
+      cardIndex: index,
+                          ),
                         );
                       },
                     ),
@@ -219,7 +225,16 @@ class _CompactStatItem extends StatelessWidget {
 
 class CreditCardItem extends StatefulWidget {
   final Map<String, dynamic> cardData;
-  const CreditCardItem({super.key, required this.cardData});
+   final Map<String, dynamic> clientData; // new
+  final String clientId;                  // new
+  final String clientName;                // new
+  final int cardIndex;      
+  const CreditCardItem({super.key, required this.cardData,
+   required this.clientData,
+    required this.clientId,
+    required this.clientName,
+    required this.cardIndex,
+  });
 
   @override
   State<CreditCardItem> createState() => _CreditCardItemState();
@@ -696,12 +711,28 @@ Spacer(),
           height: 44,
           child: ElevatedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Opening payment portal...'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              final selectedCard = {
+        'bankName': widget.cardData['bankName'],
+        'cardNumber': widget.cardData['cardNumber'],
+        'cardHolderName': widget.cardData['cardHolderName'],
+        'cardLimit': widget.cardData['cardLimit'],
+        'cardType': widget.cardData['cardType'],
+        'billGenerationDate': widget.cardData['billGenerationDate'],
+        'cardDueDate': widget.cardData['cardDueDate'],
+        // include other fields your AddBillScreen expects
+      };
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AddBillScreen(
+            clientId: widget.clientId,
+            clientName: widget.clientName,
+            clientData: widget.clientData,
+            selectedCard: selectedCard,
+            cardIndex: widget.cardIndex,
+          ),
+        ),
+      );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF8B5CF6),
