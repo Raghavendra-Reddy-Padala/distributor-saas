@@ -1,0 +1,30 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "priyanka-enterprises-69",
+          "appId": "1:21057243927:android:005103594a8e6b3e188552",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "priyanka-enterprises-69",
+          "configurations": {
+            "android": "1:21057243927:android:005103594a8e6b3e188552",
+            "web": "1:21057243927:web:e741975b515d11a5188552"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
