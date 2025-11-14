@@ -11,7 +11,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
-// Add this import for web download
 import 'dart:html' as html;
 
 class AddBillScreen extends StatefulWidget {
@@ -1072,71 +1071,228 @@ Future<Uint8List> _generatePdfInvoice() async {
     );
   }
 
-  Widget _buildCardDetailsCard() {
-    final card = widget.selectedCard;
-    final cardNumber = card['cardNumber'] ?? '';
+Widget _buildCardDetailsCard() {
+  final card = widget.selectedCard;
+  final cardNumber = card['cardNumber'] ?? '';
+  final paymentHistory = card['paymentHistory'] as List<dynamic>? ?? [];
+  
+  // Get most recent payment
+  Map<String, dynamic>? recentPayment;
+  if (paymentHistory.isNotEmpty) {
+    recentPayment = paymentHistory.last as Map<String, dynamic>;
+  }
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+  return Card(
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Selected Card',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Selected Card',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  card['cardType'] ?? 'Credit Card',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Bank Name
+          _buildCopyableText(
+            card['bankName'] ?? 'Unknown Bank',
+            const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          // Card Number
+          _buildCopyableText(
+            _formatCardNumber(cardNumber),
+            const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              letterSpacing: 2,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Card Holder & Limit Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'CARD HOLDER',
+                      style: TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
+                      card['cardHolderName'] ?? 'N/A',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'LIMIT',
+                    style: TextStyle(color: Colors.white70, fontSize: 10),
                   ),
-                  child: Text(
-                    card['cardType'] ?? 'Credit Card',
-                    style: const TextStyle(
+                  const SizedBox(height: 4),
+                  _buildCopyableText(
+                    NumberFormat.currency(
+                      locale: 'en_IN',
+                      symbol: '₹',
+                      decimalDigits: 0,
+                    ).format(card['cardLimit'] ?? 0),
+                    const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Expiry, CVV, Mobile & Due Date Row
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'VALID THRU',
+                      style: TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
+                      card['expiryDate'] ?? 'N/A',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              card['bankName'] ?? 'Unknown Bank',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$cardNumber',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                letterSpacing: 2,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'CVV',
+                      style: TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
+                      card['cvv'] ?? 'N/A',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'DUE DATE',
+                      style: TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
+                      card['cardDueDate'] ?? 'N/A',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'MOBILE',
+                      style: TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
+                      card['cardHolderMobile'] ?? 'N/A',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          if (recentPayment != null) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white30, height: 1),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1145,14 +1301,15 @@ Future<Uint8List> _generatePdfInvoice() async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Card Holder',
+                      'LAST PAYMENT',
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
-                    Text(
-                      card['cardHolderName'] ?? 'N/A',
-                      style: const TextStyle(
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
+                      '${recentPayment['month']} ${recentPayment['year']}',
+                      const TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1162,19 +1319,20 @@ Future<Uint8List> _generatePdfInvoice() async {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text(
-                      'Limit',
+                      'AMOUNT',
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
-                    Text(
+                    const SizedBox(height: 4),
+                    _buildCopyableText(
                       NumberFormat.currency(
                         locale: 'en_IN',
                         symbol: '₹',
                         decimalDigits: 0,
-                      ).format(card['cardLimit'] ?? 0),
-                      style: const TextStyle(
+                      ).format(recentPayment['amount'] ?? 0),
+                      const TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -1182,10 +1340,50 @@ Future<Uint8List> _generatePdfInvoice() async {
               ],
             ),
           ],
-        ),
+        ],
       ),
-    );
+    ),
+  );
+}
+
+// Helper method to create copyable text
+Widget _buildCopyableText(String text, TextStyle style, {TextOverflow? overflow}) {
+  return GestureDetector(
+    onTap: () {
+      Clipboard.setData(ClipboardData(text: text));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Copied: $text'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    },
+    child: Text(
+      text,
+      style: style,
+      overflow: overflow,
+    ),
+  );
+}
+
+// Helper method to format card number with spaces
+String _formatCardNumber(String cardNumber) {
+  if (cardNumber.isEmpty) return 'N/A';
+  final buffer = StringBuffer();
+  for (int i = 0; i < cardNumber.length; i++) {
+    if (i > 0 && i % 4 == 0) {
+      buffer.write(' ');
+    }
+    buffer.write(cardNumber[i]);
   }
+  return buffer.toString();
+}
+
+
+
  Widget _buildTransactionsCard() {
     return Card(
       elevation: 2,
