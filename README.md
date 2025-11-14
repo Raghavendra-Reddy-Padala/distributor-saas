@@ -1,5 +1,4 @@
 To do!
-connect customerdetials credit cards with-paybill , add billing history
-<!-- work on dashbaord profit margin! -->
 
-
+chnage name of the app
+change cedit card detials 

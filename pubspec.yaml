@@ -4,20 +4,19 @@ version: 1.0.0+1
 environment:
   sdk: ^3.8.1
 
-
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^2.32.0         # Required
-  firebase_auth: ^4.20.0         # Authentication
-  cloud_firestore: ^4.17.5       # Database
-  provider: ^6.1.2               # Simple, effective state management
-  go_router: ^14.2.0             # Modern, URL-based routing
-  flutter_slidable: ^3.1.0       # For swipe-to-edit/delete
-  fluttertoast: ^8.2.6           # Simple toast messages
-  url_launcher: ^6.3.2           # For opening WhatsApp/SMS
-  clipboard: ^0.1.3              # For copying link to clipboard
-  fl_chart: ^0.68.0              # Beautiful charts (replaces Victory Native)
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
+  provider: ^6.1.2
+  go_router: ^14.2.0
+  flutter_slidable: ^3.1.0
+  fluttertoast: ^8.2.6
+  url_launcher: ^6.3.2
+  clipboard: ^0.1.3
+  fl_chart: ^0.68.0
   cupertino_icons: ^1.0.6
   intl: ^0.20.2
   image_picker: ^1.2.0
@@ -31,19 +30,27 @@ dependencies:
   html: ^0.15.6
   pdf: ^3.11.3
   printing: ^5.13.1
+  flutter_svg: ^2.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-
   flutter_lints: ^5.0.0
-
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
-
-
   uses-material-design: true
 
   assets:
     - assets/qr.jpg
+    - assets/logo1.svg
     - assets/logo.jpg
+
+flutter_launcher_icons:
+ 
+  web:
+    generate: true
+    image_path: "assets/logo.jpg"
+    background_color: "#ffffff"
+    theme_color: "#0175C2"
+ 
