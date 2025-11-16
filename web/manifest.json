@@ -1,6 +1,6 @@
 {
-    "name": "distributor_app",
-    "short_name": "distributor_app",
+    "name": "BillVault App",
+    "short_name": "BillVault",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",

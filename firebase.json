@@ -21,6 +21,14 @@
   },
   "hosting": {
     "public": "build/web",
+    "headers": [
+      {
+        "source": "/main.dart.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
