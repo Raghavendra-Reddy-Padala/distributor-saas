@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:toastification/toastification.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
-import 'dart:html' as html;
 
 class AddBillScreen extends StatefulWidget {
   final String clientId;
@@ -133,8 +131,14 @@ class _AddBillScreenState extends State<AddBillScreen> {
 
   Future<void> _saveBill() async {
     if (baseBillPayment == 0) {
-      Fluttertoast.showToast(msg: 'Please enter base amount.');
-      return;
+toastification.show(
+  context: context,
+  type: ToastificationType.error, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('please enter some amount to save the bill.'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);      return;
     }
 
     setState(() => _isLoading = true);
@@ -180,17 +184,21 @@ class _AddBillScreenState extends State<AddBillScreen> {
 
       await FirebaseFirestore.instance.collection('bills').add(billData);
 
-      Fluttertoast.showToast(
-        msg: 'Bill saved successfully!',
-        backgroundColor: Colors.green,
-      );
+     toastification.show(
+  context: context,
+  type: ToastificationType.success, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Bill saved successfully!'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      Fluttertoast.showToast(
-        msg: 'Error: ${e.toString()}',
-        backgroundColor: Colors.red,
-      );
+      // Fluttertoast.showToast(
+      //   msg: 'Error: ${e.toString()}',
+      //   backgroundColor: Colors.red,
+      // );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -913,80 +921,70 @@ Future<Uint8List> _generatePdfInvoice() async {
   );
 
   return pdf.save();
-}  Future<void> _generateAndShareInvoice() async {
-    if (totalBillPayment == 0 && baseBillPayment == 0) {
-      Fluttertoast.showToast(msg: 'Please enter transaction or base amount first.');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Generate PDF
-      final pdfBytes = await _generatePdfInvoice();
-      
-      final clientMobile = widget.clientData['mobile']?.toString() ?? '';
-      final formattedAmount = NumberFormat.currency(
-        locale: 'en_IN',
-        symbol: 'Rs. ',
-        decimalDigits: 2,
-      ).format(finalAmountForClient);
-
-      final plainMessage = 'Hi ${widget.clientName},\n\nYour payment invoice is ready.\nAmount to Pay: $formattedAmount\n\nPlease find the invoice attached.';
-
-      if (kIsWeb) {
-        // WEB: Download PDF using blob
-        final blob = html.Blob([pdfBytes], 'application/pdf');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'invoice_${widget.clientName}_${DateTime.now().millisecondsSinceEpoch}.pdf')
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        
-        // Open WhatsApp
-        if (clientMobile.isNotEmpty) {
-          final encoded = Uri.encodeComponent(plainMessage);
-          final waUrl = 'https://wa.me/91$clientMobile?text=$encoded';
-          await launchUrl(Uri.parse(waUrl), mode: LaunchMode.externalApplication);
-        }
-        
-        Fluttertoast.showToast(
-          msg: 'Invoice downloaded successfully!',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        // MOBILE: Share PDF directly
-        if (clientMobile.isNotEmpty) {
-          final message = Uri.encodeComponent(plainMessage);
-          final whatsappUrl = 'https://wa.me/91$clientMobile?text=$message';
-          final uri = Uri.parse(whatsappUrl);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-            await Future.delayed(const Duration(milliseconds: 400));
-          }
-        }
-        
-        // Share PDF
-        await Printing.sharePdf(
-          bytes: pdfBytes,
-          filename: 'invoice_${widget.clientName}_${DateTime.now().millisecondsSinceEpoch}.pdf',
-        );
-        
-        Fluttertoast.showToast(
-          msg: 'Invoice shared successfully!',
-          backgroundColor: Colors.green,
-        );
-      }
-    } catch (e, st) {
-      Fluttertoast.showToast(
-        msg: 'Error: ${e.toString()}',
-        backgroundColor: Colors.red,
-      );
-      print('Invoice error: $e\n$st');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+} 
+ Future<void> _generateAndShareInvoice() async {
+  if (totalBillPayment == 0 && baseBillPayment == 0) {
+toastification.show(
+  context: context,
+  type: ToastificationType.error, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Please enter some amount to generate invoice.'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);    return;
   }
+
+  setState(() => _isLoading = true);
+
+  try {
+    // Generate PDF
+    final pdfBytes = await _generatePdfInvoice();
+    
+    final clientMobile = widget.clientData['mobile']?.toString() ?? '';
+    final formattedAmount = NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: 'Rs. ',
+      decimalDigits: 2,
+    ).format(interestAmount);
+
+    final plainMessage = 'Hi ${widget.clientName},\n\nYour payment invoice is ready.\nAmount to Pay: $formattedAmount\n\nPlease find the invoice attached.';
+
+    // For mobile: Share PDF directly
+    if (clientMobile.isNotEmpty) {
+      final message = Uri.encodeComponent(plainMessage);
+      final whatsappUrl = 'https://wa.me/91$clientMobile?text=$message';
+      final uri = Uri.parse(whatsappUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+    }
+    
+    // Share PDF using printing package (works on both mobile and web)
+    await Printing.sharePdf(
+      bytes: pdfBytes,
+      filename: 'invoice_${widget.clientName}_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
+   toastification.show(
+  type: ToastificationType.success, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('invoice generated successfully!'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);
+  } catch (e, st) {
+   toastification.show(
+  context: context,
+  type: ToastificationType.error, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Error: ${e.toString()}'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
 
   @override
   Widget build(BuildContext context) {

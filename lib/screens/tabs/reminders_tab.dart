@@ -5,7 +5,6 @@ import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 enum ReminderFilter { overdue, urgent, dueToday, upcoming, all }
 
@@ -262,7 +261,7 @@ class ReminderCardV2 extends StatelessWidget {
 
   Future<void> _callNumber(String number) async {
     if (number.isEmpty) {
-      Fluttertoast.showToast(msg: 'No number available');
+      // Fluttertoast.showToast(msg: 'No number available');
       return;
     }
     final Uri url = Uri(scheme: 'tel', path: number);
@@ -288,9 +287,9 @@ class ReminderCardV2 extends StatelessWidget {
         'paidAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      Fluttertoast.showToast(msg: 'Marked as paid', backgroundColor: Colors.green);
+      // Fluttertoast.showToast(msg: 'Marked as paid', backgroundColor: Colors.green);
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Error: ${e.toString()}', backgroundColor: Colors.red);
+      // Fluttertoast.showToast(msg: 'Error: ${e.toString()}', backgroundColor: Colors.red);
     }
   }
 

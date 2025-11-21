@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:priyanakaenterprises/screens/details/bank_detials_page.dart';
 import 'package:priyanakaenterprises/screens/details/card_detials_page.dart';
@@ -9,6 +8,7 @@ import 'package:priyanakaenterprises/screens/add_bill_screen.dart';
 import 'package:priyanakaenterprises/screens/forms/add_client_screen.dart';
 import 'package:priyanakaenterprises/screens/tabs/bills_tab.dart';
 import 'package:priyanakaenterprises/widgets/card_selection.dart';
+import 'package:toastification/toastification.dart';
 
 class ClientDetailsScreen extends StatelessWidget {
   final String clientId;
@@ -31,7 +31,21 @@ class ClientDetailsScreen extends StatelessWidget {
                 await FirebaseFirestore.instance.collection('clients').doc(clientId).delete();
                 Navigator.of(dialogContext).pop();
                 Navigator.of(context).pop();
-                Fluttertoast.showToast(msg: "$clientName deleted.");
+                Toastification().show(
+                  title: Text('Client Deleted'),
+                  description:Text( '$clientName has been deleted successfully.'),
+                  type: ToastificationType.success,
+                );  
+
+                /// Toastification().show(
+///   context: context, // optional if ToastificationWrapper is in widget tree
+///   alignment: Alignment.topRight,
+///   title: Text('Hello World'),
+///   description: Text('This is a notification'),
+///   type: ToastificationType.info,
+///   style: ToastificationStyle.flat,
+///   autoCloseDuration: Duration(seconds: 3),
+/// );
               },
             ),
           ],

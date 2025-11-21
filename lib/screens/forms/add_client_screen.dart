@@ -8,7 +8,7 @@ import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:toastification/toastification.dart';
 import 'package:uuid/uuid.dart';
 
 
@@ -139,7 +139,10 @@ Future<String> _generateClientId() async {
 }
 Future<void> _submitForm() async {
   if (!_formKey.currentState!.saveAndValidate()) {
-    Fluttertoast.showToast(msg: 'Please correct the highlighted fields');
+    toastification.show(
+     description: Text( 'Please correct the highlighted fields')
+,   type: ToastificationType.error,
+      );
     return;
   }
 
@@ -232,23 +235,29 @@ Future<void> _submitForm() async {
       batch.set(reminderRef, reminderData);
     }
 
-    // Commit all changes atomically
     await batch.commit();
 
-    Fluttertoast.showToast(
-      msg: widget.clientDoc != null 
-          ? 'Client updated successfully' 
-          : 'Client created successfully with ${_creditCards.length} reminders',
-      backgroundColor: Colors.green,
-    );
+   toastification.show(
+  type: ToastificationType.success, // success, error, info, warning
+  style: ToastificationStyle.fillColored, // optional styling
+  title: Text(
+    widget.clientDoc != null
+        ? 'Client updated successfully'
+        : 'Client created successfully with ${_creditCards.length} reminders',
+  ),
+  autoCloseDuration: const Duration(seconds: 3), // auto dismiss
+  alignment: Alignment.bottomCenter, // position on screen
+);
 
     if (mounted) Navigator.of(context).pop();
   } catch (e) {
-    Fluttertoast.showToast(
-      msg: 'Error: ${e.toString()}',
-      backgroundColor: Colors.red,
-      toastLength: Toast.LENGTH_LONG,
-    );
+   toastification.show(
+  type: ToastificationType.error, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Error: ${e.toString()}'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);
   } finally {
     setState(() => _isLoading = false);
   }

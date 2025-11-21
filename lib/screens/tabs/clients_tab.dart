@@ -8,7 +8,6 @@ import 'package:priyanakaenterprises/screens/tabs/dashboard_tab.dart';
 import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart'; // For swipe actions
-import 'package:fluttertoast/fluttertoast.dart'; // For "copied" message
 
 class ClientsTab extends StatelessWidget {
   const ClientsTab({super.key});
@@ -31,7 +30,7 @@ class ClientsTab extends StatelessWidget {
         .snapshots();
 
     final clientFormLink =
-        'https://priyanka-enterprises-69.web.app/form/$distributorId';
+        'https://formsapp-five.vercel.app/form/$distributorId';
 
     return Scaffold(
       appBar: AppBar(
@@ -42,7 +41,7 @@ class ClientsTab extends StatelessWidget {
             tooltip: 'Share Form Link',
             onPressed: () {
               Clipboard.setData(ClipboardData(text: clientFormLink)).then((_) {
-                Fluttertoast.showToast(msg: "Client form link copied!");
+                // Fluttertoast.showToast(msg: "Client form link copied!");
               });
             },
           ),
@@ -86,7 +85,6 @@ class ClientsTab extends StatelessWidget {
 
           final clients = snapshot.data!.docs;
 
-          // Use same card container style to keep UI consistent
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
@@ -200,7 +198,7 @@ class ClientsTab extends StatelessWidget {
               onPressed: () {
                 FirebaseFirestore.instance.collection('clients').doc(clientId).delete();
                 Navigator.of(dialogContext).pop();
-                Fluttertoast.showToast(msg: "$clientName deleted.");
+                // Fluttertoast.showToast(msg: "$clientName deleted.");
               },
             ),
           ],

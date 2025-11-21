@@ -3,7 +3,7 @@ import 'package:flutter/services.dart'; // For clipboard
 import 'package:priyanakaenterprises/screens/login_screen.dart';
 import 'package:priyanakaenterprises/services/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:fluttertoast/fluttertoast.dart'; // For "copied" message
+import 'package:toastification/toastification.dart';
 
 
 class ProfileScreen extends StatelessWidget {
@@ -69,11 +69,22 @@ class ProfileScreen extends StatelessWidget {
                 bool success = await authProvider.forgotPassword(email);
 
                 if (success) {
-                  Fluttertoast.showToast(msg: 'Password reset email sent.');
+                  toastification.show(
+  type: ToastificationType.success, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Password reset email sent successfully!'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);
+
                 } else {
-                  Fluttertoast.showToast(
-                      msg: authProvider.errorMessage ?? 'Error sending email.',
-                      backgroundColor: Colors.red);
+                  toastification.show(
+  type: ToastificationType.error, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Failed to send password reset email. Please try again.'),
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+);  
                 }
                 Navigator.of(dialogContext).pop();
               },
@@ -95,7 +106,7 @@ class ProfileScreen extends StatelessWidget {
     
     // Generate the unique client form link
     final clientFormLink =
-        'https://priyanka-enterprises-69.web.app/form/$distributorId';
+        'https://formsapp-five.vercel.app/form/$distributorId';
 
     return Scaffold(
       appBar: AppBar(
@@ -156,8 +167,14 @@ class ProfileScreen extends StatelessWidget {
             trailing: const Icon(Icons.copy_rounded),
             onTap: () {
               Clipboard.setData(ClipboardData(text: clientFormLink)).then((_) {
-                Fluttertoast.showToast(msg: "Client form link copied!");
-              });
+                toastification.show(
+  type: ToastificationType.success, // error type gives red styling
+  style: ToastificationStyle.fillColored,
+  title: Text('Client form link copied to clipboard!'),   
+  autoCloseDuration: const Duration(seconds: 5), // similar to Toast.LENGTH_LONG
+  alignment: Alignment.bottomCenter,
+  );
+                });
             },
           ),
           
