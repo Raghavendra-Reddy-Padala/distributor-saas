@@ -3,13 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:priyanakaenterprises/services/auth_provider.dart';
+import 'package:priyanakaenterprises/uitls/formatcard.dart';
+import 'package:priyanakaenterprises/widgets/copytext.dart';
 import 'package:provider/provider.dart';
 import 'package:toastification/toastification.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'dart:typed_data';
 
 class AddBillScreen extends StatefulWidget {
   final String clientId;
@@ -203,6 +204,7 @@ toastification.show(
       setState(() => _isLoading = false);
     }
   }
+
 Future<Uint8List> _generatePdfInvoice() async {
   final pdf = pw.Document();
   
@@ -1127,9 +1129,9 @@ Widget _buildCardDetailsCard() {
           const SizedBox(height: 16),
           
           // Bank Name
-          _buildCopyableText(
-            card['bankName'] ?? 'Unknown Bank',
-            const TextStyle(
+          CopyableText(
+          text:   card['bankName'] ?? 'Unknown Bank',
+          style:   const TextStyle(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1138,9 +1140,9 @@ Widget _buildCardDetailsCard() {
           const SizedBox(height: 12),
           
           // Card Number
-          _buildCopyableText(
-            _formatCardNumber(cardNumber),
-            const TextStyle(
+          CopyableText(
+         text:CardFormatters.formatNumber( cardNumber ,),
+          style:   const TextStyle(
               color: Colors.white,
               fontSize: 16,
               letterSpacing: 2,
@@ -1162,9 +1164,9 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      card['cardHolderName'] ?? 'N/A',
-                      const TextStyle(
+                    CopyableText(
+                   text:    card['cardHolderName'] ?? 'N/A',
+                    style:   const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -1182,13 +1184,13 @@ Widget _buildCardDetailsCard() {
                     style: TextStyle(color: Colors.white70, fontSize: 10),
                   ),
                   const SizedBox(height: 4),
-                  _buildCopyableText(
-                    NumberFormat.currency(
+                  CopyableText(
+                  text:   NumberFormat.currency(
                       locale: 'en_IN',
                       symbol: '₹',
                       decimalDigits: 0,
                     ).format(card['cardLimit'] ?? 0),
-                    const TextStyle(
+                 style:    const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1212,9 +1214,9 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      card['expiryDate'] ?? 'N/A',
-                      const TextStyle(
+                    CopyableText(
+                  text:     card['expiryDate'] ?? 'N/A',
+                  style:     const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -1233,9 +1235,9 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      card['cvv'] ?? 'N/A',
-                      const TextStyle(
+                    CopyableText(
+                    text:   card['cvv'] ?? 'N/A',
+                  style:     const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -1254,9 +1256,9 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      card['cardDueDate'] ?? 'N/A',
-                      const TextStyle(
+                    CopyableText(
+                   text:    card['cardDueDate'] ?? 'N/A',
+                    style:   const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -1274,9 +1276,9 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      card['cardHolderMobile'] ?? 'N/A',
-                      const TextStyle(
+                    CopyableText(
+                    text:   card['cardHolderMobile'] ?? 'N/A',
+                    style:   const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1303,9 +1305,9 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      '${recentPayment['month']} ${recentPayment['year']}',
-                      const TextStyle(
+                    CopyableText(
+                    text:   '${recentPayment['month']} ${recentPayment['year']}',
+                    style:   const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1321,13 +1323,13 @@ Widget _buildCardDetailsCard() {
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                     const SizedBox(height: 4),
-                    _buildCopyableText(
-                      NumberFormat.currency(
+                    CopyableText(
+                     text:  NumberFormat.currency(
                         locale: 'en_IN',
                         symbol: '₹',
                         decimalDigits: 0,
                       ).format(recentPayment['amount'] ?? 0),
-                      const TextStyle(
+                     style:  const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -1344,41 +1346,8 @@ Widget _buildCardDetailsCard() {
   );
 }
 
-// Helper method to create copyable text
-Widget _buildCopyableText(String text, TextStyle style, {TextOverflow? overflow}) {
-  return GestureDetector(
-    onTap: () {
-      Clipboard.setData(ClipboardData(text: text));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Copied: $text'),
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-    },
-    child: Text(
-      text,
-      style: style,
-      overflow: overflow,
-    ),
-  );
-}
 
-// Helper method to format card number with spaces
-String _formatCardNumber(String cardNumber) {
-  if (cardNumber.isEmpty) return 'N/A';
-  final buffer = StringBuffer();
-  for (int i = 0; i < cardNumber.length; i++) {
-    if (i > 0 && i % 4 == 0) {
-      buffer.write(' ');
-    }
-    buffer.write(cardNumber[i]);
-  }
-  return buffer.toString();
-}
+
 
 
 

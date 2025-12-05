@@ -14,6 +14,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  // CORPORATE THEME COLORS
+  final Color _navyPrimary = const Color(0xFF0D47A1);
+  final Color _goldAccent = const Color(0xFFFFA000);
+
   static const List<Widget> _widgetOptions = <Widget>[
     DashboardTab(),
     ClientsTab(),
@@ -37,43 +41,40 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
+          // Sharper, subtler shadow for a "floating card" feel
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, -2),
             ),
           ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildNavItem(
-                  icon: Icons.dashboard_rounded,
+                  icon: Icons.dashboard, // Removed "_rounded" for sharper look
                   label: 'Dashboard',
                   index: 0,
-                  color: const Color(0xFF3B82F6),
                 ),
                 _buildNavItem(
-                  icon: Icons.people_alt_rounded,
+                  icon: Icons.groups,
                   label: 'Clients',
                   index: 1,
-                  color: const Color(0xFF10B981),
                 ),
                 _buildNavItem(
-                  icon: Icons.receipt_long_rounded,
+                  icon: Icons.receipt_long,
                   label: 'Bills',
                   index: 2,
-                  color: const Color(0xFF8B5CF6),
                 ),
                 _buildNavItem(
-                  icon: Icons.alarm_rounded,
+                  icon: Icons.notifications_active, // More urgent icon for reminders
                   label: 'Reminders',
                   index: 3,
-                  color: const Color(0xFFF59E0B),
                 ),
               ],
             ),
@@ -87,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required String label,
     required int index,
-    required Color color,
   }) {
     final isSelected = _selectedIndex == index;
 
@@ -95,7 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: () => _onItemTapped(index),
         behavior: HitTestBehavior.opaque,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -103,42 +105,27 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? LinearGradient(
-                          colors: [
-                            color,
-                            color.withOpacity(0.8),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: isSelected ? null : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: color.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : null,
+                  // Solid Navy Background when selected
+                  color: isSelected ? _navyPrimary : Colors.transparent,
+                  // Sharper corners (8) to match the finance aesthetic
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
-                  size: 26,
-                  color: isSelected ? Colors.white : Colors.grey[600],
+                  size: 24,
+                  // Gold Icon when selected (Premium), Grey when inactive
+                  color: isSelected ? _goldAccent : Colors.grey[500],
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? color : Colors.grey[600],
-                  letterSpacing: 0.2,
+                  fontSize: 11, // Slightly smaller, more professional font size
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  // Navy Text when selected, Grey when inactive
+                  color: isSelected ? _navyPrimary : Colors.grey[500],
+                  letterSpacing: 0.3,
                 ),
               ),
             ],

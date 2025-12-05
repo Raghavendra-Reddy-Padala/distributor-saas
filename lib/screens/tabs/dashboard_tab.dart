@@ -18,6 +18,9 @@ class DashboardTab extends StatelessWidget {
     final distributorId = authProvider.distributorId;
     final distributorName = authProvider.distributorName ?? 'Distributor';
 
+    // FINANCE THEME COLORS
+    final Color bgColor = Colors.blueGrey[50]!; // Corporate Background
+
     if (distributorId == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Dashboard')),
@@ -28,7 +31,7 @@ class DashboardTab extends StatelessWidget {
     final clientFormLink = 'https://formsapp-five.vercel.app/form/$distributorId';
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: bgColor,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -42,9 +45,9 @@ class DashboardTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       StatArea(distributorId: distributorId, constraints: constraints),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24), // Tighter spacing
                       QuickActionsArea(clientFormLink: clientFormLink, constraints: constraints),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       RecentActivityArea(distributorId: distributorId, constraints: constraints),
                       const SizedBox(height: 24),
                     ],
@@ -65,12 +68,15 @@ class DashboardAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Uses the Navy Primary from Main Theme
+    final primaryColor = Theme.of(context).primaryColor; 
+
     return SliverAppBar(
-      expandedHeight: 100,
-      floating: false,
+      expandedHeight: 110,
+      floating: true,
       pinned: true,
       elevation: 0,
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: primaryColor,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -78,8 +84,8 @@ class DashboardAppBar extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Theme.of(context).primaryColor,
-                Theme.of(context).primaryColor.withOpacity(0.8),
+                primaryColor,
+                const Color(0xFF002171), // Darker shade of Navy
               ],
             ),
           ),
@@ -90,23 +96,40 @@ class DashboardAppBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    'Welcome back,',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    distributorName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.business, color: Colors.white70, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome back,',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          Text(
+                            distributorName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -116,13 +139,10 @@ class DashboardAppBar extends StatelessWidget {
       ),
       actions: [
         Container(
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          margin: const EdgeInsets.only(right: 16),
           child: IconButton(
-            icon: const Icon(Icons.settings_rounded, color: Colors.white),
+            // Gold Icon for Settings implies importance
+            icon: const Icon(Icons.settings, color: Color(0xFFFFA000)), 
             onPressed: () {
               Navigator.push(
                 context,
@@ -152,45 +172,35 @@ class StatArea extends StatelessWidget {
       stream: FirebaseFirestore.instance.collection('bills').where('distributorId', isEqualTo: distributorId).snapshots(),
       builder: (context, billSnapshot) {
         double totalIncome = 0;
-        double pendingAmount = 0;
-        double paidAmount = 0;
-
+        
         if (billSnapshot.hasData) {
           for (var doc in billSnapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
             final interestAmount = (data['interestAmount'] as num?)?.toDouble() ?? 0.0;
             final status = data['status'] as String?;
 
-            // Total income is sum of all interest amounts (paid bills)
             if (status == 'paid') {
               totalIncome += interestAmount;
-              paidAmount += interestAmount;
-            } else if (status == 'pending' || status == 'unpaid' || status == 'partial') {
-              pendingAmount += interestAmount;
             }
           }
         }
 
         final currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
-        return Column(
+        return Row(
           children: [
-            Row(
-              children: [
-                Expanded(child: TotalClientsCard(distributorId: distributorId, constraints: constraints)),
-                SizedBox(width: spacing),
-                Expanded(
-                  child: StatCard(
-                    title: 'Total Income',
-                    value: currencyFormatter.format(totalIncome),
-                    icon: Icons.trending_up_rounded,
-                    color: const Color(0xFF10B981),
-                    constraints: constraints,
-                  ),
-                ),
-              ],
+            Expanded(child: TotalClientsCard(distributorId: distributorId, constraints: constraints)),
+            SizedBox(width: spacing),
+            Expanded(
+              child: StatCard(
+                title: 'Total Income',
+                value: currencyFormatter.format(totalIncome),
+                icon: Icons.account_balance_wallet,
+                // Using Dark Green for Money (Financial standard)
+                color: const Color(0xFF1B5E20), 
+                constraints: constraints,
+              ),
             ),
-          
           ],
         );
       },
@@ -211,21 +221,13 @@ class TotalClientsCard extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: clientStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return StatCard(
-            title: 'Total Clients',
-            value: '...',
-            icon: Icons.people_rounded,
-            color: const Color(0xFF3B82F6),
-            constraints: constraints,
-          );
-        }
         final count = snapshot.data?.size ?? 0;
         return StatCard(
           title: 'Total Clients',
           value: count.toString(),
-          icon: Icons.people_rounded,
-          color: const Color(0xFF3B82F6),
+          icon: Icons.groups_3,
+          // Using Navy Blue for Client Base
+          color: const Color(0xFF0D47A1), 
           constraints: constraints,
         );
       },
@@ -249,12 +251,13 @@ class QuickActionsArea extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(width: 4, height: 24, decoration: BoxDecoration(color: Theme.of(context).primaryColor, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(width: 12),
-            Text('Quick Actions', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 22)),
+            // Gold Bar indicator
+            Container(width: 4, height: 20, decoration: BoxDecoration(color: const Color(0xFFFFA000), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 8),
+            Text('Quick Actions', style: TextStyle(color: Colors.blueGrey[800], fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         isTablet
             ? Row(
                 children: [
@@ -279,28 +282,40 @@ class ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final Color textColor;
+  final Color iconColor;
   final VoidCallback onPressed;
 
-  const ActionButton._({super.key, required this.icon, required this.label, required this.color, required this.onPressed});
+  const ActionButton._({
+    super.key, 
+    required this.icon, 
+    required this.label, 
+    required this.color, 
+    required this.onPressed,
+    this.textColor = Colors.white,
+    this.iconColor = Colors.white,
+  });
 
   factory ActionButton.share({required String link}) {
     return ActionButton._(
-      icon: Icons.share_rounded,
+      icon: Icons.share,
       label: 'Share Form Link',
-      color: const Color(0xFF3B82F6),
+      // Navy Blue for Admin tasks
+      color: const Color(0xFF0D47A1), 
       onPressed: () {
-        Clipboard.setData(ClipboardData(text: link)).then((_) {
-          // Fluttertoast.showToast(msg: "Client form link copied!");
-        });
+        Clipboard.setData(ClipboardData(text: link));
       },
     );
   }
 
   factory ActionButton.addClient() {
     return ActionButton._(
-      icon: Icons.person_add_alt_1_rounded,
-      label: 'Add Client',
-      color: const Color(0xFF10B981),
+      icon: Icons.person_add,
+      label: 'Add New Client',
+      // Gold for Growth/Sales tasks (High Visibility)
+      color: const Color(0xFFFFA000), 
+      textColor: const Color(0xFF0D47A1), // Navy text on Gold
+      iconColor: const Color(0xFF0D47A1),
       onPressed: () {},
     );
   }
@@ -308,7 +323,7 @@ class ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     VoidCallback finalOnPressed = onPressed;
-    if (label == 'Add Client') {
+    if (label == 'Add New Client') {
       finalOnPressed = () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const AddClientScreen()));
       };
@@ -316,27 +331,28 @@ class ActionButton extends StatelessWidget {
 
     return Material(
       elevation: 2,
-      borderRadius: BorderRadius.circular(16),
-      shadowColor: color.withOpacity(0.3),
+      // Sharper corners (8) for professional look
+      borderRadius: BorderRadius.circular(8), 
+      color: color,
       child: InkWell(
         onTap: finalOnPressed,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color, color.withOpacity(0.8)],
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white, size: 24),
+              Icon(icon, color: iconColor, size: 22),
               const SizedBox(width: 12),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+              Text(
+                label, 
+                style: TextStyle(
+                  color: textColor, 
+                  fontSize: 15, 
+                  fontWeight: FontWeight.bold, 
+                  letterSpacing: 0.5
+                )
+              ),
             ],
           ),
         ),
@@ -361,31 +377,17 @@ class RecentActivityArea extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(width: 4, height: 24, decoration: BoxDecoration(color: Theme.of(context).primaryColor, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(width: 12),
-            Text('Recent Activity', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 22)),
+            Container(width: 4, height: 20, decoration: BoxDecoration(color: const Color(0xFFFFA000), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 8),
+            Text('Recent Activity', style: TextStyle(color: Colors.blueGrey[800], fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         RemindersDueTodayWidget(distributorId: distributorId),
         const SizedBox(height: 16),
         GatewayStatsWidget(distributorId: distributorId),
         const SizedBox(height: 16),
-        if (isTablet)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(width: 16),
-              Expanded(child: RecentBillsWidget(distributorId: distributorId)),
-            ],
-          )
-        else
-          Column(
-            children: [
-              const SizedBox(height: 16),
-              RecentBillsWidget(distributorId: distributorId),
-            ],
-          ),
+        RecentBillsWidget(distributorId: distributorId),
       ],
     );
   }
@@ -407,34 +409,17 @@ class GatewayStatsWidget extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
-        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        // Count payments by gateway
-        Map<String, int> gatewayCounts = {
-          'plg': 0,
-          'slg': 0,
-          'pay': 0,
-          'nter': 0,
-        };
-
-        Map<String, String> gatewayNames = {
-          'plg': 'PLG',
-          'slg': 'SLG',
-          'pay': 'PAY',
-          'nter': 'NTER',
-        };
-
+        Map<String, int> gatewayCounts = {'plg': 0, 'slg': 0, 'pay': 0, 'nter': 0};
+        Map<String, String> gatewayNames = {'plg': 'PLG', 'slg': 'SLG', 'pay': 'PAY', 'nter': 'NTER'};
+        
+        // Professional Palette for Chart items
         Map<String, Color> gatewayColors = {
-          'plg': const Color(0xFF3B82F6),
-          'slg': const Color(0xFF10B981),
-          'pay': const Color(0xFFF59E0B),
-          'nter': const Color(0xFF8B5CF6),
+          'plg': const Color(0xFF1565C0), // Blue 800
+          'slg': const Color(0xFF2E7D32), // Green 800
+          'pay': const Color(0xFFEF6C00), // Orange 800
+          'nter': const Color(0xFF6A1B9A), // Purple 800 (Darker)
         };
 
         for (var doc in snapshot.data!.docs) {
@@ -448,113 +433,64 @@ class GatewayStatsWidget extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(8), // Sharp corners
+            border: Border.all(color: Colors.grey[300]!),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet_rounded,
-                        color: Color(0xFF6366F1),
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
+                    // Gold Icon
+                    const Icon(Icons.pie_chart, color: Color(0xFFFFA000), size: 24),
+                    const SizedBox(width: 8),
                     Text(
-                      'Gateway Payment Stats',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                      'Gateway Stats',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.blueGrey[800],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio: 2.5,
-                    crossAxisSpacing: 20,
-                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
                   ),
                   itemCount: gatewayCounts.length,
                   itemBuilder: (context, index) {
                     final gatewayKey = gatewayCounts.keys.elementAt(index);
                     final count = gatewayCounts[gatewayKey]!;
-                    final name = gatewayNames[gatewayKey]!;
                     final color = gatewayColors[gatewayKey]!;
 
                     return Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [color, color.withOpacity(0.8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: color.withOpacity(0.3)),
+                        // Left border accent
                         boxShadow: [
-                          BoxShadow(
-                            color: color.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          )
-                        ],
+                          BoxShadow(color: color, offset: const Offset(-4, 0), blurRadius: 0) 
+                        ]
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                count.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'payment${count != 1 ? 's' : ''}',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                          Text(gatewayNames[gatewayKey]!, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600)),
+                          Text(count.toString(), style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     );
@@ -581,13 +517,18 @@ class RecentBillsWidget extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return EmptyStateWidget(message: 'No recent bills', icon: Icons.receipt_long_outlined);
+          return const EmptyStateWidget(message: 'No recent bills', icon: Icons.receipt_long);
         }
 
         final currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
         return Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -595,17 +536,17 @@ class RecentBillsWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981), size: 24)),
-                    const SizedBox(width: 12),
-                    Text('Latest Bills', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Icon(Icons.history, color: Color(0xFF0D47A1), size: 24),
+                    const SizedBox(width: 8),
+                    Text('Latest Transactions', style: TextStyle(color: Colors.blueGrey[800], fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 ListView.separated(
                   itemCount: snapshot.data!.docs.length,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) => const Divider(height: 16),
                   itemBuilder: (context, index) {
                     final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                     final amount = (data['interestAmount'] as num?)?.toDouble() ?? 0.0;
@@ -613,35 +554,45 @@ class RecentBillsWidget extends StatelessWidget {
                     final status = data['status'] ?? 'No Status';
                     final isPaid = status == 'paid';
 
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(gradient: LinearGradient(colors: isPaid ? [const Color(0xFF10B981), const Color(0xFF059669)] : [const Color(0xFFF59E0B), const Color(0xFFD97706)]), borderRadius: BorderRadius.circular(12)),
-                            child: Icon(isPaid ? Icons.check_circle_rounded : Icons.pending_rounded, color: Colors.white, size: 24),
+                    return Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isPaid ? Colors.green[50] : Colors.amber[50],
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(data['clientName'] ?? 'Unknown Client', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                                const SizedBox(height: 2),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(color: isPaid ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFFF59E0B).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                                  child: Text(status.toUpperCase(), style: TextStyle(color: isPaid ? const Color(0xFF10B981) : const Color(0xFFF59E0B), fontWeight: FontWeight.w600, fontSize: 11)),
-                                ),
-                              ],
+                          child: Icon(
+                            isPaid ? Icons.check : Icons.access_time,
+                            size: 18,
+                            color: isPaid ? Colors.green[800] : Colors.amber[900],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(data['clientName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              Text(data['bankName'] ?? 'Bank', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(currency, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueGrey[900])),
+                            Text(
+                              status.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isPaid ? Colors.green[800] : Colors.amber[900],
+                              ),
                             ),
-                          ),
-                          Text(currency, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -663,60 +614,65 @@ class RemindersDueTodayWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final todayDay = now.day;
-
     final stream = FirebaseFirestore.instance.collection('reminders').where('distributorId', isEqualTo: distributorId).where('status', isEqualTo: 'pending').where('cardDueDate', isEqualTo: todayDay).snapshots();
 
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox.shrink();
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
 
         return Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: const Color(0xFFEF4444).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            // Dark Red for High Priority/Urgent
+            color: const Color(0xFFB71C1C), 
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 24)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text('Reminders Due Today (${todayDay}${_getDaySuffix(todayDay)})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
+                    const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Urgent: Due Today (${todayDay}${_getDaySuffix(todayDay)})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 ListView.separated(
                   itemCount: snapshot.data!.docs.length,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  separatorBuilder: (context, index) => const SizedBox(height: 10),
+                  separatorBuilder: (context, index) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                     return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
                       child: Row(
                         children: [
-                          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.credit_card, color: Color(0xFFEF4444), size: 24)),
+                          Icon(Icons.credit_card, color: Colors.grey[700], size: 20),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(data['clientName'] ?? 'Unknown Client', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                                const SizedBox(height: 4),
-                                Text('${data['bankName'] ?? 'Unknown Bank'} •••• ${data['lastFourDigits'] ?? ''}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                                Text('📱 ${data['clientMobile'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                                Text(data['clientName'] ?? 'Client', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('📱 ${data['clientMobile'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                               ],
                             ),
                           ),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(8)), child: const Text('DUE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              border: Border.all(color: Colors.red[100]!),
+                              borderRadius: BorderRadius.circular(4)
+                            ),
+                            child: Text('COLLECT', style: TextStyle(color: Colors.red[900], fontWeight: FontWeight.bold, fontSize: 10)),
+                          ),
                         ],
                       ),
                     );
@@ -733,19 +689,14 @@ class RemindersDueTodayWidget extends StatelessWidget {
   String _getDaySuffix(int day) {
     if (day >= 11 && day <= 13) return 'th';
     switch (day % 10) {
-      case 1:
-        return 'st';
-      case 2:
-        return 'nd';
-      case 3:
-        return 'rd';
-      default:
-        return 'th';
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
     }
   }
 }
 
-// ------------------ Empty State ------------------
 class EmptyStateWidget extends StatelessWidget {
   final String message;
   final IconData icon;
@@ -755,20 +706,22 @@ class EmptyStateWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!)
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(48.0),
-        child: Center(
-          child: Column(
-            children: [
-              Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle), child: Icon(icon, size: 48, color: Colors.grey[400])),
-              const SizedBox(height: 16),
-              Text(message, style: TextStyle(color: Colors.grey[600], fontSize: 15, fontWeight: FontWeight.w500)),
-            ],
-          ),
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          children: [
+            Icon(icon, size: 32, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            Text(message, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+          ],
         ),
       ),
     );
   }
 }
-
